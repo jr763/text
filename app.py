@@ -2,14 +2,13 @@ import streamlit as st
 import re
 
 st.set_page_config(page_title="VBA 修改器", layout="centered")
-st.title("VBA 參數線上修改器")
+st.title("🚀 VBA 參數配置工具")
 
 uploaded_file = st.file_uploader("選擇 .bas 檔案", type=["bas", "txt"])
 
 if uploaded_file is not None:
     raw_bytes = uploaded_file.getvalue()
     content = ""
-    # 嘗試多種編碼，包含繁體中文最常見的 big5
     for enc in ["utf-8-sig", "utf-8", "big5", "cp950"]:
         try:
             content = raw_bytes.decode(enc)
@@ -17,24 +16,22 @@ if uploaded_file is not None:
         except:
             continue
     
-    if not content:
-        st.error("檔案編碼讀取失敗")
-    else:
+    if content:
         lines = content.splitlines()
         found_items = []
         
-        # 最強放寬版正則：只要有 = 且後面有 @Config 就抓
-        # 抓取：1.等號前內容, 2.左引號, 3.數值, 4.右引號, 5.剩餘部分
-        pattern = re.compile(r'^(.*=\s*)(["\']?)([^"\';\n]*)(["\']?)(.*\'\s*@Config.*)$', re.IGNORECASE)
+        # 強化版 Regex：支援 @Config:中文說明
+        pattern = re.compile(r'^(.*=\s*)(["\']?)([^"\';\n]*)(["\']?)(.*\'\s*@Config[:：]?\s*(.*))$', re.IGNORECASE)
         
         for i, line in enumerate(lines):
             match = pattern.search(line)
             if match:
-                # 取得變數名稱
-                display_name = match.group(1).split('=')[0].replace('Dim', '').replace('Set', '').strip()
+                var_name = match.group(1).split('=')[0].replace('Dim', '').replace('Set', '').strip()
+                desc = match.group(6).strip() # 抓取冒號後的中文說明
+                
                 found_items.append({
                     "idx": i, 
-                    "name": display_name, 
+                    "display": desc if desc else var_name, # 有說明就顯示說明，沒有就顯示變數名
                     "prefix": match.group(1),
                     "q1": match.group(2),
                     "val": match.group(3),
@@ -43,24 +40,24 @@ if uploaded_file is not None:
                 })
 
         if found_items:
-            st.success(f"偵測到 {len(found_items)} 個可修改參數！")
+            st.info(f"💡 貼心提醒：在 VBA 標記 '@Config:您的說明' 即可顯示中文")
             new_values = {}
             with st.form("edit_form"):
+                # 使用 columns 讓介面更美觀
                 for item in found_items:
-                    new_values[item["idx"]] = st.text_input(f"修改 {item['name']}", value=item["val"])
+                    new_values[item["idx"]] = st.text_input(f"📍 {item['display']}", value=item["val"])
                 
-                if st.form_submit_button("產生新檔案並下載"):
+                if st.form_submit_button("✅ 儲存修改並下載檔案"):
                     for idx, val in new_values.items():
                         it = next(x for x in found_items if x["idx"] == idx)
                         lines[idx] = f"{it['prefix']}{it['q1']}{val}{it['q2']}{it['suffix']}"
                     
                     final_txt = "\n".join(lines)
                     st.download_button(
-                        label="點我下載 .bas 檔案",
+                        label="📥 點我下載修改後的 .bas 檔案",
                         data=final_txt.encode('utf-8-sig'),
-                        file_name=f"Mod_{uploaded_file.name}",
+                        file_name=f"New_{uploaded_file.name}",
                         mime="text/plain"
                     )
         else:
-            st.warning("還是找不到標記。請確認檔案內容是否有 ' @Config' ")
-            st.code("範例：Dim x = 10 ' @Config") # 顯示範例給使用者對照
+            st.warning("檔案中找不到 '@Config' 標記。")
