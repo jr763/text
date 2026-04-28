@@ -21,7 +21,7 @@ if uploaded_file is not None:
     if content:
         lines = content.splitlines()
         found_items = []
-        pattern = re.compile(r'^(.*=\s*)(["\']?)([^"\';\n]*)(["\']?)(.*\'\s*@Config[:：]?\s*(.*))$', re.IGNORECASE)
+        pattern = re.compile(r'^(.*=\s*)(["\']?)(.*?)(["\']?)\s*(?=\'\s*@Config)(.*\'\s*@Config[:：]?\s*(.*))$', re.IGNORECASE)
         
         for i, line in enumerate(lines):
             match = pattern.search(line)
