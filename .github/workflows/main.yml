@@ -1,0 +1,27 @@
+name: 打包 VBA 工具為 EXE
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: 設定 Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: 安裝工具
+      run: |
+        pip install pyinstaller windnd
+    - name: 執行打包
+      run: |
+        pyinstaller --onefile --noconsole VBA_Editor.py
+    - name: 上傳成品
+      uses: actions/upload-artifact@v4
+      with:
+        name: My_VBA_Tool
+        path: dist/VBA_Editor.exe
