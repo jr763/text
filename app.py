@@ -65,14 +65,22 @@ if uploaded_file is not None:
                 st.session_state.final_txt = final_txt
                 
                 # 處理檔名：確保最後一定是 .bas
+                # 處理檔名：確保最後一定是 .bas
                 save_name = new_filename.strip()
                 if not save_name.lower().endswith('.bas'):
                     save_name += ".bas"
                 
                 st.success(f"🎉 內容已更新！檔名將存為：{save_name}")
+                
+                # --- 關鍵修改區：改為 cp950 (Big5) 避免 VBA 亂碼 ---
+                try:
+                    download_data = final_txt.encode('cp950', errors='replace')
+                except:
+                    download_data = final_txt.encode('utf-8-sig') # 萬一有特殊字元才退回 utf-8
+                
                 st.download_button(
-                    label=f"📥 點我下載 {save_name}",
-                    data=final_txt.encode('utf-8-sig'),
+                    label=f"📥 立即點我下載檔案",
+                    data=download_data,
                     file_name=save_name,
                     mime="text/plain"
                 )
